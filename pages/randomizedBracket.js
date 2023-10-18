@@ -1,4 +1,4 @@
-import { Team, Tournament } from "./game.js";
+import { Team, Tournament } from "../public/game/game";
 import { React, useEffect, useState } from 'react';
 import styles from '../styles/Home.module.css';
 import Image from 'next/image'
