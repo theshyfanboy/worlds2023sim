@@ -1,19 +1,19 @@
-import t1logo from '../teams/webp/t1.webp';
-import tllogo from '../teams/webp/tl.webp';
-import c9logo from '../teams/webp/c9.webp';
-import madlogo from '../teams/webp/mad.webp';
-import genglogo from '../teams/webp/geng.webp';
-import gamlogo from '../teams/webp/gam.webp';
-import jdglogo from '../teams/webp/jdg.webp';
-import bdslogo from '../teams/webp/bds.webp';
-import g2logo from '../teams/webp/g2.webp';
-import dwglogo from '../teams/webp/dwg.webp';
-import nrglogo from '../teams/webp/nrg.webp';
-import wbglogo from '../teams/webp/wbg.webp';
-import fnclogo from '../teams/webp/fnc.webp';
-import lnglogo from '../teams/webp/lng.webp';
-import blglogo from '../teams/webp/blg.webp';
-import ktlogo from '../teams/webp/kt.webp';
+import t1logo from '../../public/teams/webp/t1.webp';
+import tllogo from '../../public/teams/webp/tl.webp';
+import c9logo from '../../public/teams/webp/c9.webp';
+import madlogo from '../../public/teams/webp/mad.webp';
+import genglogo from '../../public/teams/webp/geng.webp';
+import gamlogo from '../../public/teams/webp/gam.webp';
+import jdglogo from '../../public/teams/webp/jdg.webp';
+import bdslogo from '../../public/teams/webp/bds.webp';
+import g2logo from '../../public/teams/webp/g2.webp';
+import dwglogo from '../../public/teams/webp/dwg.webp';
+import nrglogo from '../../public/teams/webp/nrg.webp';
+import wbglogo from '../../public/teams/webp/wbg.webp';
+import fnclogo from '../../public/teams/webp/fnc.webp';
+import lnglogo from '../../public/teams/webp/lng.webp';
+import blglogo from '../../public/teams/webp/blg.webp';
+import ktlogo from '../../public/teams/webp/kt.webp';
 
 export class Team {
     constructor(name, region, imageObj) {
@@ -166,6 +166,102 @@ export class Tournament {
         this.roundList.push(tempRound);
     }
 
+    predictRound(predictions) {
+        const tempList = [];
+        for (let i = 0; i < this.roundList.length; i++) {
+            const temp = this.roundList[i];
+            if (temp.complete === true) {
+                continue;
+            }
+
+            const upper = [];
+            const lower = [];
+
+            for (let j = 0; j < predictions.length; j++) {
+                if (temp.win == predictions[j].roundwin && temp.loss == predictions[j].roundloss) {
+                    for (let i = 0; i < temp.matchList.length; i++) {
+                        if (predictions[j].cMatch.firstteam.name == temp.matchList[i].firstteam.name && predictions[j].cMatch.secondteam.name == temp.matchList[i].secondteam.name) {
+                            temp.matchList[i].setWinner(parseInt(predictions[j].picked));
+                            if (temp.matchList[i].winner.wins < 3) {
+                                upper.push(temp.matchList[i].winner);
+                            } else if (temp.matchList[i].winner.wins === 3) {
+                                this.qualified.push(temp.matchList[i].winner);
+                            }
+                            if (temp.matchList[i].loser.loss < 3) {
+                                lower.push(temp.matchList[i].loser);
+                            } else if (temp.matchList[i].loser.loss === 3) {
+                                this.disqualified.push(temp.matchList[i].loser);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const upperRound = new Round([], this.roundNo + 1);
+            let upperSwap = true;
+            let upperIndex = -1;
+            const lowerRound = new Round([], this.roundNo + 1);
+            let lowerSwap = true;
+            let lowerIndex = -1;
+
+            if (upper.length !== 0) {
+                for (let i = 0; i < tempList.length; i++) {
+                    if (
+                        tempList[i].win === upper[0].wins &&
+                        tempList[i].loss === upper[0].loss
+                    ) {
+                        upperIndex = i;
+                        upperSwap = false;
+                        break;
+                    }
+                }
+
+                if (upper.length !== 0 && upperSwap) {
+                    upperRound.insertTeams(upper);
+                    tempList.push(upperRound);
+                } else if (upper.length !== 0 && !upperSwap) {
+                    tempList[upperIndex].insertTeams(upper);
+                }
+            }
+
+            if (lower.length !== 0) {
+                for (let i = 0; i < tempList.length; i++) {
+                    if (
+                        tempList[i].win === lower[0].wins &&
+                        tempList[i].loss === lower[0].loss
+                    ) {
+                        lowerIndex = i;
+                        lowerSwap = false;
+                        break;
+                    }
+                }
+
+                if (lower.length !== 0 && lowerSwap) {
+                    lowerRound.insertTeams(lower);
+                    tempList.push(lowerRound);
+                } else if (lower.length !== 0 && !lowerSwap) {
+                    tempList[lowerIndex].insertTeams(lower);
+                }
+            }
+
+            temp.makeComplete();
+        }
+
+        for (let i = 0; i < tempList.length; i++) {
+            const current = tempList[i].teamPlaying;
+            shuffleArray(current);
+            for (let j = 0; j < current.length; j += 2) {
+                tempList[i].insertMatch([new Match(current[j], current[j + 1])]);
+            }
+        }
+
+        for (let i = 0; i < tempList.length; i++) {
+            this.roundList.push(tempList[i]);
+        }
+
+        this.roundNo += 1
+    }
     generateNextRound() {
         const tempList = [];
         for (let i = 0; i < this.roundList.length; i++) {
